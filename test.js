@@ -138,18 +138,51 @@ function runTests() {
     total: 9.9     // 4.5 + 4.8 + 0.6
   }, "Typical Daily Mix");
 
-  // Validation Utility Tests
-  logHeader("Validation Utility Tests");
+  // Validation Utility & Edge-Case Tests
+  logHeader("Validation Utility & Edge-Case Tests");
   if (validateNumberFunc) {
-    totalTests += 4;
+    totalTests += 9;
     
+    // Core validation checks
     if (assertEqual(validateNumberFunc("abc", 0, 100, 25), 25, "String parsing fallback check")) passedTests++;
     if (assertEqual(validateNumberFunc(-10, 0, 100, 25), 0, "Below minimum bounds check")) passedTests++;
     if (assertEqual(validateNumberFunc(200, 0, 100, 25), 100, "Above maximum bounds check")) passedTests++;
     if (assertEqual(validateNumberFunc(45, 0, 100, 25), 45, "Valid value bounding check")) passedTests++;
+    
+    // Explicit edge-case test blocks requested by user
+    if (assertEqual(validateNumberFunc(-50, 0, 150, 25), 0, "Edge-case: Negative boundary check")) passedTests++;
+    if (assertEqual(validateNumberFunc("", 0, 150, 25), 25, "Edge-case: Empty string check")) passedTests++;
+    if (assertEqual(validateNumberFunc("abc$#", 0, 150, 25), 25, "Edge-case: Unexpected symbols check")) passedTests++;
+    if (assertEqual(validateNumberFunc(20000, 0, 150, 25), 150, "Edge-case: Extreme out-of-bounds check")) passedTests++;
+    if (assertEqual(validateNumberFunc(null, 0, 150, 25), 25, "Edge-case: Null input check")) passedTests++;
   } else {
     logFail("validateNumber function is not loaded.");
   }
+
+  // Missing DOM elements error-trapping test
+  logHeader("DOM Elements Error-Trapping Tests");
+  let domTrappingPassed = false;
+  try {
+    if (isNode) {
+      // In Node.js environment, the DOM is absent, so checking that calculateEmissions
+      // operates without throwing ReferenceErrors is a valid check
+      const testRes = calculateEmissionsFunc(10, 10, 10);
+      domTrappingPassed = (testRes !== null && typeof testRes === 'object');
+    } else {
+      // In browser environment, temporarily mock a missing DOM element to verify safety
+      const originalStatus = elements.emissionStatus;
+      elements.emissionStatus = null; // Mock missing element
+      updateStatusBadge(5); // Should return early and not throw
+      elements.emissionStatus = originalStatus; // Restore element
+      domTrappingPassed = true;
+    }
+  } catch (e) {
+    console.error("DOM error-trapping failure: ", e);
+    domTrappingPassed = false;
+  }
+  
+  totalTests += 1;
+  if (assertEqual(domTrappingPassed ? 1 : 0, 1, "Edge-case: Missing DOM elements error-trapping check")) passedTests++;
 
   // Print results overview
   logHeader("TEST RESULTS SUMMARY");
