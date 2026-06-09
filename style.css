@@ -1,18 +1,18 @@
-/* --- EcoTrace Minimalist CSS Design System --- */
+/* --- EcoTrace Premium Glassmorphic CSS Design System --- */
 
 :root {
   /* Color Palette */
-  --bg-app: #090e0c;
-  --bg-card: #101613;
-  --bg-card-hover: #131b17;
-  --border-color: rgba(255, 255, 255, 0.08);
-  --border-focus: rgba(16, 185, 129, 0.4);
+  --bg-app: #080d0b;
+  --bg-card: rgba(16, 22, 19, 0.75);
+  --bg-card-hover: rgba(22, 30, 26, 0.85);
+  --border-color: rgba(16, 185, 129, 0.15);
+  --border-focus: rgba(52, 211, 153, 0.45);
   
   --accent-emerald: #10b981;
   --accent-mint: #34d399;
   --accent-forest: #064e3b;
   
-  /* Category Colors (Referenced in JS Chart Colors) */
+  /* Category Colors */
   --cat-commute: #10b981;
   --cat-electricity: #34d399;
   --cat-transit: #059669;
@@ -31,6 +31,11 @@
   --text-secondary: #9ca3af;
   --text-muted: #6b7280;
   
+  /* Glows and Shadows */
+  --glow-emerald: 0 0 20px rgba(16, 185, 129, 0.15);
+  --glow-mint: 0 0 25px rgba(52, 211, 153, 0.25);
+  --shadow-premium: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+  
   /* Transitions */
   --transition-fast: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -48,6 +53,8 @@
 body {
   font-family: 'Inter', sans-serif;
   background-color: var(--bg-app);
+  background-image: radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.05), transparent 50%),
+                    radial-gradient(circle at 20% 80%, rgba(52, 211, 153, 0.03), transparent 50%);
   color: var(--text-main);
   min-height: 100vh;
   display: flex;
@@ -64,11 +71,11 @@ body {
   background: var(--bg-app);
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(16, 185, 129, 0.2);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(52, 211, 153, 0.4);
 }
 
 /* Base Container */
@@ -88,8 +95,11 @@ body {
   align-items: center;
   padding: 1.25rem 1.5rem;
   background-color: var(--bg-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border-color);
   border-radius: 12px;
+  box-shadow: var(--shadow-premium);
 }
 
 .logo-text {
@@ -98,6 +108,7 @@ body {
   font-weight: 700;
   letter-spacing: -0.5px;
   color: var(--text-main);
+  text-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
 }
 
 .streak-badge {
@@ -113,7 +124,7 @@ body {
 
 .streak-badge:hover {
   background: rgba(52, 211, 153, 0.15);
-  box-shadow: 0 0 15px rgba(52, 211, 153, 0.2);
+  box-shadow: var(--glow-mint);
 }
 
 /* Milestone Savings Banner */
@@ -121,11 +132,12 @@ body {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: rgba(16, 185, 129, 0.08);
-  border: 1px solid rgba(16, 185, 129, 0.2);
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.25);
   border-radius: 12px;
   padding: 1rem 1.25rem;
   font-size: 0.9rem;
+  box-shadow: var(--glow-emerald);
   transition: var(--transition-smooth);
   animation: fade-in-slide 0.4s ease-out;
 }
@@ -164,18 +176,23 @@ body {
   gap: 24px;
 }
 
-/* Clean Minimal Component Cards */
+/* Premium Glassmorphic Cards */
 .dashboard-card {
   background-color: var(--bg-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 24px;
+  box-shadow: var(--shadow-premium);
   transition: var(--transition-smooth);
 }
 
 .dashboard-card:hover {
   background-color: var(--bg-card-hover);
-  border-color: rgba(255, 255, 255, 0.12);
+  border-color: var(--border-focus);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4), var(--glow-emerald);
+  transform: translateY(-1px);
 }
 
 .card-header {
@@ -252,13 +269,15 @@ body {
   border-radius: 50%;
   background: var(--accent-mint);
   cursor: pointer;
-  border: 2px solid var(--bg-card);
+  border: 2px solid #101613;
+  box-shadow: 0 0 8px rgba(52, 211, 153, 0.5);
   transition: var(--transition-fast);
 }
 
 .slider-control::-webkit-slider-thumb:hover {
   transform: scale(1.25);
   background: var(--text-main);
+  box-shadow: var(--glow-mint);
 }
 
 /* Dynamic slider background fills */
@@ -275,7 +294,7 @@ body {
 /* Number boxes */
 .number-control {
   width: 70px;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.3);
   border: 1px solid var(--border-color);
   border-radius: 6px;
   color: var(--text-main);
@@ -289,6 +308,7 @@ body {
 
 .number-control:focus {
   border-color: var(--border-focus);
+  box-shadow: 0 0 10px rgba(52, 211, 153, 0.2);
 }
 
 /* Remove number spin buttons */
@@ -319,11 +339,13 @@ body {
 .btn-primary {
   background-color: var(--accent-emerald);
   color: #050c09;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2);
 }
 
 .btn-primary:hover {
   background-color: var(--accent-mint);
   transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(52, 211, 153, 0.4);
 }
 
 .btn-primary:active {
@@ -407,6 +429,56 @@ body {
   height: 200px;
   width: 100%;
   margin-top: 10px;
+}
+
+/* Target Tracker Card styling */
+.target-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.comparison-badge {
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  transition: var(--transition-smooth);
+}
+
+.comparison-badge.saving {
+  color: var(--accent-mint);
+  background: rgba(52, 211, 153, 0.1);
+  border: 1px solid rgba(52, 211, 153, 0.25);
+}
+
+.comparison-badge.exceeded {
+  color: var(--color-high);
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.target-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.target-metric-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+}
+
+.target-lbl {
+  color: var(--text-secondary);
+}
+
+.target-val {
+  font-weight: 600;
+  color: var(--text-main);
 }
 
 /* Eco-Budget Card */

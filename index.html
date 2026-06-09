@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>EcoTrace - Carbon Footprint Tracker</title>
+  <!-- Content Security Policy -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self';">
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -107,6 +109,25 @@
           <!-- Chart.js Emissions Breakdown Doughnut Chart -->
           <div class="chart-container">
             <canvas id="emissionsChart"></canvas>
+          </div>
+        </section>
+
+        <!-- Dashboard Card: Regional Sustainability Target Comparison Tracker -->
+        <section class="dashboard-card target-card" id="target-card">
+          <div class="card-header target-header-row">
+            <h2 class="card-title">Regional Sustainability Tracker</h2>
+            <span class="comparison-badge" id="comparison-badge">Saving 0.0 kg</span>
+          </div>
+
+          <div class="target-body">
+            <div class="target-metric-row">
+              <span class="target-lbl">Regional Baseline Target</span>
+              <span class="target-val">20.0 kg CO₂</span>
+            </div>
+            <div class="target-metric-row">
+              <span class="target-lbl">Your Live Footprint Score</span>
+              <span class="target-val" id="comparison-footprint">0.0 kg CO₂</span>
+            </div>
           </div>
         </section>
 

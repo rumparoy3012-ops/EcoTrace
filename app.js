@@ -1,8 +1,8 @@
 /**
  * @file app.js
- * @description EcoTrace - Carbon Footprint Tracker Core Logic.
- * Implements real-time footprint calculations, reactive Chart.js breakdown visualization,
- * budget tracking limits, milestone savings recognition, and local storage state sync.
+ * @description EcoTrace - Carbon Footprint Tracker Core Application Logic.
+ * Features centralized state management, strict input sanitation, reactive Chart.js visual updates,
+ * regional baseline comparison tracking, and daily eco-budget alerts.
  */
 
 // --- CONFIGURATION & CONSTANTS ---
@@ -18,8 +18,7 @@ const EMISSION_FACTORS = {
 };
 
 /**
- * Standard regional average baseline CO2 emissions (kg CO2/day)
- * Used as a reference point to calculate savings.
+ * Standard regional baseline target daily emissions (kg CO2/day)
  * @type {number}
  */
 const REGIONAL_BASELINE_CO2 = 20.0;
@@ -38,10 +37,10 @@ const DAILY_BUDGET_LIMIT_CO2 = 12.0;
  */
 let emissionsChart = null;
 
-// --- DOM ELEMENTS REGISTRY ---
+// --- DOM ELEMENTS CACHE REGISTRY ---
 
 /**
- * Registry containing references to all interactive DOM elements.
+ * Registry caching DOM selector queries up front to prevent overhead.
  * Evaluated only when running in a browser context.
  * @type {Object<string, HTMLElement|null>}
  */
@@ -75,22 +74,24 @@ if (typeof document !== 'undefined') {
     budgetCard: document.getElementById('budget-card'),
     budgetStatus: document.getElementById('budget-status'),
     budgetProgressFill: document.getElementById('budget-progress-fill'),
-    budgetRemaining: document.getElementById('budget-remaining')
+    budgetRemaining: document.getElementById('budget-remaining'),
+
+    // Target comparison elements
+    comparisonBadge: document.getElementById('comparison-badge'),
+    comparisonFootprint: document.getElementById('comparison-footprint')
   };
 }
 
-// --- APP STATE ---
+// --- CENTRALIZED STATE MANAGEMENT ---
 
 /**
- * Global application state representing lifestyle inputs and user streak data.
- * @type {{inputs: {commute: number, electricity: number, transit: number}, streak: number, lastLoggedDate: string|null}}
+ * Centralized application state. Single source of truth.
+ * @type {{commute: number, electricity: number, transit: number, streak: number, lastLoggedDate: string|null}}
  */
-let state = {
-  inputs: {
-    commute: 25,
-    electricity: 12,
-    transit: 15
-  },
+const state = {
+  commute: 25,
+  electricity: 12,
+  transit: 15,
   streak: 0,
   lastLoggedDate: null
 };
@@ -98,7 +99,7 @@ let state = {
 // --- ICON DATASETS ---
 
 /**
- * HTML/SVG markup for dynamic advisor icons.
+ * Inline SVGs for the dynamic AI recommendations panel.
  * @type {Object<string, string>}
  */
 const ICONS = {
@@ -110,23 +111,33 @@ const ICONS = {
   sun: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>`
 };
 
-// --- DATA VALIDATION UTILITIES ---
+// --- DATA VALIDATION & SECURITY SANITIZATION ---
 
 /**
- * Validates, cleans, and constrains a raw input string or number defensively.
- * Handles negative values, empty strings, null, NaN, and extreme boundaries.
+ * Sanitizes input values to strip out malicious HTML tag injection characters.
+ * @param {string|number|null|undefined} input - Raw user input.
+ * @returns {string} Sanitized string.
+ */
+function sanitizeInput(input) {
+  if (input === null || input === undefined) {
+    return '';
+  }
+  return String(input).replace(/[<>]/g, '');
+}
+
+/**
+ * Validates, sanitizes, and constrains input numbers defensively.
+ * Coerces numeric string representations, negative integers, and extreme overflows.
  * @param {string|number|null|undefined} value - Raw input value from forms.
  * @param {number} min - Minimum allowed boundary.
  * @param {number} max - Maximum allowed boundary.
  * @param {number} defaultValue - Fallback value if parsing fails.
- * @returns {number} Cleaned, constrained number.
+ * @returns {number} Cleaned, constrained float value.
  */
 function validateNumber(value, min, max, defaultValue) {
-  if (value === null || value === undefined) {
-    return defaultValue;
-  }
+  const sanitized = sanitizeInput(value);
+  let parsed = parseFloat(sanitized);
   
-  let parsed = parseFloat(value);
   if (isNaN(parsed)) {
     return defaultValue;
   }
@@ -136,11 +147,11 @@ function validateNumber(value, min, max, defaultValue) {
   return parsed;
 }
 
-// --- CORE CALCULATIONS ---
+// --- CORE MATHEMATICAL CALCULATIONS ---
 
 /**
  * Pure function to calculate carbon emissions from lifestyle categories.
- * Returns categorical emissions and the total.
+ * Returns categorical emissions and the total daily score.
  * @param {number} commute - Private car travel in km.
  * @param {number} electricity - Electricity usage in kWh.
  * @param {number} transit - Public transport travel in km.
@@ -287,6 +298,28 @@ function updateEmissionsChart(commuteVal, electricityVal, transitVal) {
 }
 
 /**
+ * Updates the Regional Sustainability Target Comparison Tracker widget.
+ * Displays baseline baseline vs current emissions with green/red status badges.
+ * @param {number} totalCO2 - Total daily emissions in kg.
+ * @returns {void}
+ */
+function updateComparisonTracker(totalCO2) {
+  if (!elements.comparisonFootprint || !elements.comparisonBadge) return;
+
+  elements.comparisonFootprint.innerText = `${totalCO2.toFixed(1)} kg CO₂`;
+  
+  const diff = REGIONAL_BASELINE_CO2 - totalCO2;
+  
+  if (diff >= 0) {
+    elements.comparisonBadge.innerText = `Saving ${diff.toFixed(1)} kg vs Baseline`;
+    elements.comparisonBadge.className = 'comparison-badge saving';
+  } else {
+    elements.comparisonBadge.innerText = `Exceeding Baseline by ${Math.abs(diff).toFixed(1)} kg`;
+    elements.comparisonBadge.className = 'comparison-badge exceeded';
+  }
+}
+
+/**
  * Updates the Daily Eco-Budget Tracker metrics and progress bars.
  * @param {number} totalCO2 - Total daily emissions in kg.
  * @returns {void}
@@ -345,9 +378,9 @@ function updateMilestoneBanner(totalCO2) {
     elements.milestoneBanner.style.transform = 'translateY(-10px)';
     
     setTimeout(() => {
-      const currentEmissions = state.inputs.commute * EMISSION_FACTORS.commute +
-                               state.inputs.electricity * EMISSION_FACTORS.electricity +
-                               state.inputs.transit * EMISSION_FACTORS.transit;
+      const currentEmissions = state.commute * EMISSION_FACTORS.commute +
+                               state.electricity * EMISSION_FACTORS.electricity +
+                               state.transit * EMISSION_FACTORS.transit;
       if (REGIONAL_BASELINE_CO2 - currentEmissions <= 0 && elements.milestoneBanner) {
         elements.milestoneBanner.classList.add('hidden');
       }
@@ -361,9 +394,9 @@ function updateMilestoneBanner(totalCO2) {
  */
 function updateCalculations() {
   const { commuteCO2, electricityCO2, transitCO2, totalCO2 } = calculateEmissions(
-    state.inputs.commute,
-    state.inputs.electricity,
-    state.inputs.transit
+    state.commute,
+    state.electricity,
+    state.transit
   );
   
   if (typeof document === 'undefined') return;
@@ -374,6 +407,7 @@ function updateCalculations() {
   
   updateStatusBadge(totalCO2);
   updateEmissionsChart(commuteCO2, electricityCO2, transitCO2);
+  updateComparisonTracker(totalCO2);
   updateBudgetUI(totalCO2);
   updateMilestoneBanner(totalCO2);
   generateAIAdvice(commuteCO2, electricityCO2, transitCO2);
@@ -414,7 +448,7 @@ function generateAIAdvice(commuteVal, electricityVal, transitVal) {
   }
   
   if (max === commuteVal) {
-    const potentialSaving = (state.inputs.commute * 0.5 * (EMISSION_FACTORS.commute - EMISSION_FACTORS.transit)).toFixed(1);
+    const potentialSaving = (state.commute * 0.5 * (EMISSION_FACTORS.commute - EMISSION_FACTORS.transit)).toFixed(1);
     html = `
       <div class="ai-advice-focus">Priority Focus: Reduce Vehicle Commute Impact</div>
       <div class="tips-container">
@@ -424,7 +458,7 @@ function generateAIAdvice(commuteVal, electricityVal, transitVal) {
               <span class="tip-title">Switch to Public Transport</span>
               <span class="saving-badge">Save ~${potentialSaving} kg CO₂</span>
             </div>
-            <p class="tip-text">By shifting just half of your daily vehicle commute (${(state.inputs.commute * 0.5).toFixed(0)} km) to bus, train, or light rail, you cut your travel footprint substantially.</p>
+            <p class="tip-text">By shifting just half of your daily vehicle commute (${(state.commute * 0.5).toFixed(0)} km) to bus, train, or light rail, you cut your travel footprint substantially.</p>
           </div>
         </div>
         
@@ -450,8 +484,8 @@ function generateAIAdvice(commuteVal, electricityVal, transitVal) {
       </div>
     `;
   } else if (max === electricityVal) {
-    const savingLed = (state.inputs.electricity * 0.15 * EMISSION_FACTORS.electricity).toFixed(1);
-    const savingTemp = (state.inputs.electricity * 0.10 * EMISSION_FACTORS.electricity).toFixed(1);
+    const savingLed = (state.electricity * 0.15 * EMISSION_FACTORS.electricity).toFixed(1);
+    const savingTemp = (state.electricity * 0.10 * EMISSION_FACTORS.electricity).toFixed(1);
     
     html = `
       <div class="ai-advice-focus">Priority Focus: Optimize Home Energy Efficiency</div>
@@ -488,7 +522,7 @@ function generateAIAdvice(commuteVal, electricityVal, transitVal) {
       </div>
     `;
   } else {
-    const transitSaving = (state.inputs.transit * 0.15 * EMISSION_FACTORS.transit).toFixed(2);
+    const transitSaving = (state.transit * 0.15 * EMISSION_FACTORS.transit).toFixed(2);
     html = `
       <div class="ai-advice-focus">Priority Focus: Consolidate Commute Volume</div>
       <div class="tips-container">
@@ -528,10 +562,14 @@ function generateAIAdvice(commuteVal, electricityVal, transitVal) {
  * @returns {void}
  */
 function handleInputChange(category, rawValue, max) {
-  const cleanValue = validateNumber(rawValue, 0, 999, state.inputs[category]);
+  const cleanValue = validateNumber(rawValue, 0, 999, state[category]);
   
-  state.inputs[category] = cleanValue;
-  localStorage.setItem('ecotrace_inputs', JSON.stringify(state.inputs));
+  state[category] = cleanValue;
+  localStorage.setItem('ecotrace_inputs', JSON.stringify({
+    commute: state.commute,
+    electricity: state.electricity,
+    transit: state.transit
+  }));
   
   syncInputs(category, cleanValue, max);
   updateCalculations();
@@ -598,7 +636,10 @@ function initAppState() {
   const storedInputs = localStorage.getItem('ecotrace_inputs');
   if (storedInputs) {
     try {
-      state.inputs = JSON.parse(storedInputs);
+      const parsed = JSON.parse(storedInputs);
+      state.commute = parsed.commute ?? state.commute;
+      state.electricity = parsed.electricity ?? state.electricity;
+      state.transit = parsed.transit ?? state.transit;
     } catch (e) {
       console.error("Failed to parse inputs from local storage", e);
     }
@@ -613,9 +654,9 @@ function initAppState() {
   checkStreakValidity();
   
   if (elements.streakCount) elements.streakCount.innerText = state.streak;
-  syncInputs('commute', state.inputs.commute, 150);
-  syncInputs('electricity', state.inputs.electricity, 50);
-  syncInputs('transit', state.inputs.transit, 100);
+  syncInputs('commute', state.commute, 150);
+  syncInputs('electricity', state.electricity, 50);
+  syncInputs('transit', state.transit, 100);
 }
 
 /**
