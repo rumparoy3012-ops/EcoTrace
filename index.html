@@ -34,6 +34,20 @@
       </div>
     </header>
 
+    <!-- Milestone Savings Banner -->
+    <div id="milestone-banner" class="milestone-banner hidden">
+      <div class="milestone-icon-box">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="m9 12 2 2 4-4"/>
+        </svg>
+      </div>
+      <div class="milestone-text-box">
+        <span class="milestone-title">CO₂ Savings Milestone!</span>
+        <span class="milestone-desc">You have saved <strong id="milestone-savings-val">0.0</strong> kg CO₂ compared to the regional average (20.0 kg).</span>
+      </div>
+    </div>
+
     <!-- Main Content Grid -->
     <main class="dashboard-grid">
       <!-- Left Column: Input Panel -->
@@ -127,21 +141,38 @@
           </div>
 
           <div class="visualizer-content">
-            <!-- SVG Doughnut Chart Area -->
-            <div class="chart-wrapper">
-              <svg id="chart-svg" class="doughnut-chart" viewBox="0 0 200 200">
-                <!-- Base Circle Background -->
-                <circle class="chart-track" cx="100" cy="100" r="75"></circle>
-                <!-- Dynamic Segments (will be injected by app.js) -->
-                <g id="chart-segments"></g>
-                <!-- Inner glow overlay or mask -->
-                <circle class="chart-center" cx="100" cy="100" r="60"></circle>
-              </svg>
-              <!-- Center Text overlay -->
-              <div class="chart-label-container">
-                <span class="label-value" id="total-emissions">0.0</span>
-                <span class="label-unit">kg CO₂</span>
-                <span class="emission-rating badge-low" id="emission-status">Low</span>
+            <div class="gauge-budget-group">
+              <!-- SVG Doughnut Chart Area -->
+              <div class="chart-wrapper">
+                <svg id="chart-svg" class="doughnut-chart" viewBox="0 0 200 200">
+                  <!-- Base Circle Background -->
+                  <circle class="chart-track" cx="100" cy="100" r="75"></circle>
+                  <!-- Dynamic Segments (will be injected by app.js) -->
+                  <g id="chart-segments"></g>
+                  <!-- Inner glow overlay or mask -->
+                  <circle class="chart-center" cx="100" cy="100" r="60"></circle>
+                </svg>
+                <!-- Center Text overlay -->
+                <div class="chart-label-container">
+                  <span class="label-value" id="total-emissions">0.0</span>
+                  <span class="label-unit">kg CO₂</span>
+                  <span class="emission-rating badge-low" id="emission-status">Low</span>
+                </div>
+              </div>
+
+              <!-- Eco-Budget Card -->
+              <div class="budget-card" id="budget-card">
+                <div class="budget-header">
+                  <span class="budget-title">Daily Eco-Budget</span>
+                  <span class="budget-status badge-low" id="budget-status">Within Budget</span>
+                </div>
+                <div class="budget-progress-container">
+                  <div class="budget-progress-fill" id="budget-progress-fill" style="width: 0%"></div>
+                </div>
+                <div class="budget-footer">
+                  <span class="budget-limit-text">Limit: <strong>12.0</strong> kg</span>
+                  <span class="budget-remaining-text" id="budget-remaining">Left: <strong>12.0</strong> kg</span>
+                </div>
               </div>
             </div>
 

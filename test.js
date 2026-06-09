@@ -5,6 +5,7 @@
 
 // --- LOAD MODULE FOR NODE.JS OR BROWSER SCOPE ---
 let calculateEmissionsFunc;
+let validateNumberFunc;
 let emissionFactors;
 let isNode = false;
 
@@ -14,6 +15,7 @@ if (typeof module !== 'undefined' && typeof require !== 'undefined') {
   try {
     const app = require('./app.js');
     calculateEmissionsFunc = app.calculateEmissions;
+    validateNumberFunc = app.validateNumber;
     emissionFactors = app.EMISSION_FACTORS;
   } catch (e) {
     console.error("Failed to require app.js. Make sure it is in the same directory.", e);
@@ -24,6 +26,7 @@ if (typeof module !== 'undefined' && typeof require !== 'undefined') {
   isNode = false;
   if (typeof calculateEmissions === 'function') {
     calculateEmissionsFunc = calculateEmissions;
+    validateNumberFunc = validateNumber;
     emissionFactors = EMISSION_FACTORS;
   } else {
     console.error("calculateEmissions function not found in global scope. Ensure app.js is loaded first.");
@@ -134,6 +137,19 @@ function runTests() {
     transit: 0.6,   // 15 * 0.04
     total: 9.9     // 4.5 + 4.8 + 0.6
   }, "Typical Daily Mix");
+
+  // Validation Utility Tests
+  logHeader("Validation Utility Tests");
+  if (validateNumberFunc) {
+    totalTests += 4;
+    
+    if (assertEqual(validateNumberFunc("abc", 0, 100, 25), 25, "String parsing fallback check")) passedTests++;
+    if (assertEqual(validateNumberFunc(-10, 0, 100, 25), 0, "Below minimum bounds check")) passedTests++;
+    if (assertEqual(validateNumberFunc(200, 0, 100, 25), 100, "Above maximum bounds check")) passedTests++;
+    if (assertEqual(validateNumberFunc(45, 0, 100, 25), 45, "Valid value bounding check")) passedTests++;
+  } else {
+    logFail("validateNumber function is not loaded.");
+  }
 
   // Print results overview
   logHeader("TEST RESULTS SUMMARY");
