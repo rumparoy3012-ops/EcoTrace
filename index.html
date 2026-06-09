@@ -8,6 +8,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- Stylesheet -->
   <link rel="stylesheet" href="style.css">
 </head>
@@ -85,7 +87,7 @@
 
       <!-- Right Column: Visualizer & Summary Panel -->
       <div class="visualizer-column">
-        <!-- Dashboard Card: Score Summary -->
+        <!-- Dashboard Card: Score Summary & Chart.js Canvas -->
         <section class="dashboard-card summary-card">
           <div class="card-header">
             <h2 class="card-title">Daily Summary</h2>
@@ -102,40 +104,9 @@
             </div>
           </div>
 
-          <!-- Categories progress break down -->
-          <div class="breakdown-list">
-            <!-- Vehicle Breakdown -->
-            <div class="breakdown-item" id="breakdown-commute">
-              <div class="breakdown-header">
-                <span class="breakdown-name">Private Car</span>
-                <span class="breakdown-value" id="val-commute">0.0 kg</span>
-              </div>
-              <div class="progress-bar-container">
-                <div class="progress-bar-fill fill-commute" style="width: 0%"></div>
-              </div>
-            </div>
-
-            <!-- Electricity Breakdown -->
-            <div class="breakdown-item" id="breakdown-electricity">
-              <div class="breakdown-header">
-                <span class="breakdown-name">Electricity</span>
-                <span class="breakdown-value" id="val-electricity">0.0 kg</span>
-              </div>
-              <div class="progress-bar-container">
-                <div class="progress-bar-fill fill-electricity" style="width: 0%"></div>
-              </div>
-            </div>
-
-            <!-- Transit Breakdown -->
-            <div class="breakdown-item" id="breakdown-transit">
-              <div class="breakdown-header">
-                <span class="breakdown-name">Public Transit</span>
-                <span class="breakdown-value" id="val-transit">0.0 kg</span>
-              </div>
-              <div class="progress-bar-container">
-                <div class="progress-bar-fill fill-transit" style="width: 0%"></div>
-              </div>
-            </div>
+          <!-- Chart.js Emissions Breakdown Doughnut Chart -->
+          <div class="chart-container">
+            <canvas id="emissionsChart"></canvas>
           </div>
         </section>
 

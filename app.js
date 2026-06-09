@@ -1,11 +1,11 @@
 /**
  * @file app.js
- * @description EcoTrace - Carbon Footprint Tracker Core Application Logic.
- * Implements real-time footprint calculations, interactive SVG charts,
- * daily budget limits, and milestone savings recognition.
+ * @description EcoTrace - Carbon Footprint Tracker Core Logic.
+ * Implements real-time footprint calculations, reactive Chart.js breakdown visualization,
+ * budget tracking limits, milestone savings recognition, and local storage state sync.
  */
 
-// --- CONSTANTS & CONFIGURATION ---
+// --- CONFIGURATION & CONSTANTS ---
 
 /**
  * Standard CO2 emissions factors (kg CO2 per unit)
@@ -30,6 +30,14 @@ const REGIONAL_BASELINE_CO2 = 20.0;
  */
 const DAILY_BUDGET_LIMIT_CO2 = 12.0;
 
+// --- CHART STATE HOLDER ---
+
+/**
+ * References the active Chart.js doughnut chart instance.
+ * @type {Object|null}
+ */
+let emissionsChart = null;
+
 // --- DOM ELEMENTS REGISTRY ---
 
 /**
@@ -52,19 +60,6 @@ if (typeof document !== 'undefined') {
     totalEmissions: document.getElementById('total-emissions'),
     emissionStatus: document.getElementById('emission-status'),
     
-    // Category linear progress breakdown values
-    valCommute: document.getElementById('val-commute'),
-    valElectricity: document.getElementById('val-electricity'),
-    valTransit: document.getElementById('val-transit'),
-    
-    // Category linear progress breakdown bar fills
-    barCommute: document.querySelector('.fill-commute'),
-    barElectricity: document.querySelector('.fill-electricity'),
-    barTransit: document.querySelector('.fill-transit'),
-    
-    // Dynamic SVG chart groups
-    chartSegments: document.getElementById('chart-segments'),
-    
     // AI Eco-Mentor section
     aiAdviceWrapper: document.getElementById('ai-advice-wrapper'),
     
@@ -72,11 +67,11 @@ if (typeof document !== 'undefined') {
     streakCount: document.getElementById('streak-count'),
     saveLogBtn: document.getElementById('save-log-btn'),
     
-    // NEW: Milestone savings elements
+    // Milestone savings elements
     milestoneBanner: document.getElementById('milestone-banner'),
     milestoneSavingsVal: document.getElementById('milestone-savings-val'),
     
-    // NEW: Daily budget elements
+    // Daily budget elements
     budgetCard: document.getElementById('budget-card'),
     budgetStatus: document.getElementById('budget-status'),
     budgetProgressFill: document.getElementById('budget-progress-fill'),
@@ -87,7 +82,7 @@ if (typeof document !== 'undefined') {
 // --- APP STATE ---
 
 /**
- * Global application state.
+ * Global application state representing lifestyle inputs and user streak data.
  * @type {{inputs: {commute: number, electricity: number, transit: number}, streak: number, lastLoggedDate: string|null}}
  */
 let state = {
@@ -103,7 +98,7 @@ let state = {
 // --- ICON DATASETS ---
 
 /**
- * Inline SVGs for the dynamic AI recommendations panel.
+ * HTML/SVG markup for dynamic advisor icons.
  * @type {Object<string, string>}
  */
 const ICONS = {
@@ -118,36 +113,47 @@ const ICONS = {
 // --- DATA VALIDATION UTILITIES ---
 
 /**
- * Validates, cleans, and constrains a generic input number.
- * @param {string|number} value - Raw input value.
+ * Validates, cleans, and constrains a raw input string or number defensively.
+ * Handles negative values, empty strings, null, NaN, and extreme boundaries.
+ * @param {string|number|null|undefined} value - Raw input value from forms.
  * @param {number} min - Minimum allowed boundary.
  * @param {number} max - Maximum allowed boundary.
  * @param {number} defaultValue - Fallback value if parsing fails.
- * @returns {number} Cleaned, bounded number.
+ * @returns {number} Cleaned, constrained number.
  */
 function validateNumber(value, min, max, defaultValue) {
+  if (value === null || value === undefined) {
+    return defaultValue;
+  }
+  
   let parsed = parseFloat(value);
   if (isNaN(parsed)) {
     return defaultValue;
   }
+  
   if (parsed < min) parsed = min;
   if (parsed > max) parsed = max;
   return parsed;
 }
 
-// --- CORE MATHEMATICAL CALCULATIONS ---
+// --- CORE CALCULATIONS ---
 
 /**
  * Pure function to calculate carbon emissions from lifestyle categories.
+ * Returns categorical emissions and the total.
  * @param {number} commute - Private car travel in km.
  * @param {number} electricity - Electricity usage in kWh.
  * @param {number} transit - Public transport travel in km.
  * @returns {{commuteCO2: number, electricityCO2: number, transitCO2: number, totalCO2: number}} Calculated values.
  */
 function calculateEmissions(commute, electricity, transit) {
-  const commuteCO2 = commute * EMISSION_FACTORS.commute;
-  const electricityCO2 = electricity * EMISSION_FACTORS.electricity;
-  const transitCO2 = transit * EMISSION_FACTORS.transit;
+  const cleanCommute = validateNumber(commute, 0, 999, 0);
+  const cleanElectricity = validateNumber(electricity, 0, 999, 0);
+  const cleanTransit = validateNumber(transit, 0, 999, 0);
+
+  const commuteCO2 = cleanCommute * EMISSION_FACTORS.commute;
+  const electricityCO2 = cleanElectricity * EMISSION_FACTORS.electricity;
+  const transitCO2 = cleanTransit * EMISSION_FACTORS.transit;
   const totalCO2 = commuteCO2 + electricityCO2 + transitCO2;
   
   return {
@@ -161,7 +167,7 @@ function calculateEmissions(commute, electricity, transit) {
 // --- UI RENDERING & RENDERING UTILITIES ---
 
 /**
- * Sets the active sliding background track fill percentage.
+ * Sets the active slider track background gradient fill percentage.
  * @param {HTMLInputElement} slider - Slider element reference.
  * @param {number} val - Current selected value.
  * @param {number} max - Max range value.
@@ -174,7 +180,7 @@ function updateSliderProgressFill(slider, val, max) {
 }
 
 /**
- * Synchronizes values between dual slider and number input fields.
+ * Synchronizes values between dual range sliders and number input fields.
  * @param {string} category - Category prefix ('commute', 'electricity', 'transit').
  * @param {number} value - Updated numerical value.
  * @param {number} max - Maximum boundary limit.
@@ -194,7 +200,7 @@ function syncInputs(category, value, max) {
 }
 
 /**
- * Updates status badge indicator class based on emission levels.
+ * Updates summary footprint rating status badge (Low / Moderate / High).
  * @param {number} totalCO2 - Total daily emissions in kg.
  * @returns {void}
  */
@@ -217,52 +223,71 @@ function updateStatusBadge(totalCO2) {
 }
 
 /**
- * Redraws and animates the SVG segments on the doughnut chart.
+ * Initializes or updates the Chart.js emissions breakdown doughnut chart.
+ * Uses green-themed palette that blends seamlessly into the dark theme.
  * @param {number} commuteVal - Commute emissions in kg.
  * @param {number} electricityVal - Electricity emissions in kg.
  * @param {number} transitVal - Public transit emissions in kg.
- * @param {number} totalVal - Total emissions in kg.
  * @returns {void}
  */
-function updateChart(commuteVal, electricityVal, transitVal, totalVal) {
-  if (!elements.chartSegments) return;
+function updateEmissionsChart(commuteVal, electricityVal, transitVal) {
+  if (typeof document === 'undefined' || typeof Chart === 'undefined') return;
   
-  elements.chartSegments.innerHTML = '';
-  if (totalVal === 0) return;
+  const ctx = document.getElementById('emissionsChart');
+  if (!ctx) return;
   
-  const radius = 75;
-  const circumference = 2 * Math.PI * radius; // 471.24
+  const data = [commuteVal, electricityVal, transitVal];
   
-  const shares = [
-    { name: 'commute', val: commuteVal, color: 'var(--cat-commute)' },
-    { name: 'electricity', val: electricityVal, color: 'var(--cat-electricity)' },
-    { name: 'transit', val: transitVal, color: 'var(--cat-transit)' }
-  ];
-  
-  let accumulatedOffset = 0;
-  
-  shares.forEach(share => {
-    if (share.val <= 0) return;
-    
-    const percentage = share.val / totalVal;
-    const strokeDash = percentage * circumference;
-    
-    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    circle.setAttribute('class', `chart-segment segment-${share.name}`);
-    circle.setAttribute('cx', '100');
-    circle.setAttribute('cy', '100');
-    circle.setAttribute('r', radius.toString());
-    circle.setAttribute('stroke', share.color);
-    circle.setAttribute('stroke-dasharray', `${strokeDash} ${circumference}`);
-    circle.setAttribute('stroke-dashoffset', (-accumulatedOffset).toString());
-    
-    elements.chartSegments.appendChild(circle);
-    accumulatedOffset += strokeDash;
-  });
+  if (!emissionsChart) {
+    emissionsChart = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Private Car', 'Electricity', 'Public Transit'],
+        datasets: [{
+          data: data,
+          backgroundColor: [
+            '#10b981', // Emerald Green
+            '#34d399', // Mint Green
+            '#059669'  // Forest Green
+          ],
+          borderColor: '#101613', // Card background color
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              color: '#9ca3af',
+              font: {
+                family: 'Inter',
+                size: 11
+              },
+              boxWidth: 12
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return ` ${context.label}: ${context.raw.toFixed(1)} kg CO₂`;
+              }
+            }
+          }
+        },
+        cutout: '70%'
+      }
+    });
+  } else {
+    emissionsChart.data.datasets[0].data = data;
+    emissionsChart.update();
+  }
 }
 
 /**
- * Updates the Daily Eco-Budget Card with metrics and warning states.
+ * Updates the Daily Eco-Budget Tracker metrics and progress bars.
  * @param {number} totalCO2 - Total daily emissions in kg.
  * @returns {void}
  */
@@ -272,23 +297,20 @@ function updateBudgetUI(totalCO2) {
   const budgetPct = Math.min((totalCO2 / DAILY_BUDGET_LIMIT_CO2) * 100, 100);
   const remaining = DAILY_BUDGET_LIMIT_CO2 - totalCO2;
   
-  // Progress Bar Fill
   if (elements.budgetProgressFill) {
     elements.budgetProgressFill.style.width = `${budgetPct}%`;
     elements.budgetProgressFill.className = 'budget-progress-fill ' + 
       (totalCO2 <= DAILY_BUDGET_LIMIT_CO2 ? 'fill-pass' : 'fill-fail');
   }
 
-  // Footer status description
   if (elements.budgetRemaining) {
     if (remaining >= 0) {
       elements.budgetRemaining.innerHTML = `Left: <strong>${remaining.toFixed(1)}</strong> kg`;
     } else {
-      elements.budgetRemaining.innerHTML = `Over: <strong style="color:var(--danger)">${Math.abs(remaining).toFixed(1)}</strong> kg`;
+      elements.budgetRemaining.innerHTML = `Over: <strong style="color:var(--color-high)">${Math.abs(remaining).toFixed(1)}</strong> kg`;
     }
   }
 
-  // Status Badge Indicator
   if (elements.budgetStatus) {
     elements.budgetStatus.className = 'budget-status';
     if (totalCO2 <= DAILY_BUDGET_LIMIT_CO2) {
@@ -302,8 +324,7 @@ function updateBudgetUI(totalCO2) {
 }
 
 /**
- * Calculates and manages the visibility and animation of the milestone savings banner.
- * Shows exactly how many kg of CO2 have been saved compared to the baseline.
+ * Updates the Milestone Savings Banner display based on regional averages.
  * @param {number} totalCO2 - Total daily emissions in kg.
  * @returns {void}
  */
@@ -316,19 +337,18 @@ function updateMilestoneBanner(totalCO2) {
     if (elements.milestoneSavingsVal) {
       elements.milestoneSavingsVal.innerText = savings.toFixed(1);
     }
-    
-    // Show banner with animation
     elements.milestoneBanner.classList.remove('hidden');
     elements.milestoneBanner.style.opacity = '1';
     elements.milestoneBanner.style.transform = 'translateY(0)';
   } else {
-    // Hide banner
     elements.milestoneBanner.style.opacity = '0';
     elements.milestoneBanner.style.transform = 'translateY(-10px)';
     
-    // Wrap timeout to fully hide from document flow after transition
     setTimeout(() => {
-      if (REGIONAL_BASELINE_CO2 - state.inputs.commute * EMISSION_FACTORS.commute - state.inputs.electricity * EMISSION_FACTORS.electricity - state.inputs.transit * EMISSION_FACTORS.transit <= 0) {
+      const currentEmissions = state.inputs.commute * EMISSION_FACTORS.commute +
+                               state.inputs.electricity * EMISSION_FACTORS.electricity +
+                               state.inputs.transit * EMISSION_FACTORS.transit;
+      if (REGIONAL_BASELINE_CO2 - currentEmissions <= 0 && elements.milestoneBanner) {
         elements.milestoneBanner.classList.add('hidden');
       }
     }, 500);
@@ -336,34 +356,24 @@ function updateMilestoneBanner(totalCO2) {
 }
 
 /**
- * Coordinator function to trigger calculations, updates, and templates generation.
+ * Master controller to recalculate carbon emissions and update UI widgets.
  * @returns {void}
  */
 function updateCalculations() {
-  // 1. Core formula calculations
   const { commuteCO2, electricityCO2, transitCO2, totalCO2 } = calculateEmissions(
     state.inputs.commute,
     state.inputs.electricity,
     state.inputs.transit
   );
   
-  if (typeof document === 'undefined') return; // Exit early if test runner environment
+  if (typeof document === 'undefined') return;
 
-  // 2. Render totals
-  if (elements.totalEmissions) elements.totalEmissions.innerText = totalCO2.toFixed(1);
-  if (elements.valCommute) elements.valCommute.innerText = `${commuteCO2.toFixed(1)} kg`;
-  if (elements.valElectricity) elements.valElectricity.innerText = `${electricityCO2.toFixed(1)} kg`;
-  if (elements.valTransit) elements.valTransit.innerText = `${transitCO2.toFixed(1)} kg`;
+  if (elements.totalEmissions) {
+    elements.totalEmissions.innerText = totalCO2.toFixed(1);
+  }
   
-  // 3. Update category progress bar ratios
-  const maxCategory = Math.max(commuteCO2, electricityCO2, transitCO2, 1);
-  if (elements.barCommute) elements.barCommute.style.width = `${(commuteCO2 / maxCategory) * 100}%`;
-  if (elements.barElectricity) elements.barElectricity.style.width = `${(electricityCO2 / maxCategory) * 100}%`;
-  if (elements.barTransit) elements.barTransit.style.width = `${(transitCO2 / maxCategory) * 100}%`;
-  
-  // 4. Update modular UI sections
   updateStatusBadge(totalCO2);
-  updateChart(commuteCO2, electricityCO2, transitCO2, totalCO2);
+  updateEmissionsChart(commuteCO2, electricityCO2, transitCO2);
   updateBudgetUI(totalCO2);
   updateMilestoneBanner(totalCO2);
   generateAIAdvice(commuteCO2, electricityCO2, transitCO2);
@@ -389,7 +399,6 @@ function generateAIAdvice(commuteVal, electricityVal, transitVal) {
       <div class="ai-advice-focus">Perfect Zero Footprint!</div>
       <div class="tips-container">
         <div class="tip-item">
-          <div class="tip-icon-box">${ICONS.leaf}</div>
           <div class="tip-body">
             <div class="tip-title-row">
               <span class="tip-title">Eco Champion Status</span>
@@ -410,7 +419,6 @@ function generateAIAdvice(commuteVal, electricityVal, transitVal) {
       <div class="ai-advice-focus">Priority Focus: Reduce Vehicle Commute Impact</div>
       <div class="tips-container">
         <div class="tip-item">
-          <div class="tip-icon-box">${ICONS.transit}</div>
           <div class="tip-body">
             <div class="tip-title-row">
               <span class="tip-title">Switch to Public Transport</span>
@@ -421,7 +429,6 @@ function generateAIAdvice(commuteVal, electricityVal, transitVal) {
         </div>
         
         <div class="tip-item">
-          <div class="tip-icon-box">${ICONS.bike}</div>
           <div class="tip-body">
             <div class="tip-title-row">
               <span class="tip-title">Active Commuting (Bike & Walk)</span>
@@ -432,7 +439,6 @@ function generateAIAdvice(commuteVal, electricityVal, transitVal) {
         </div>
         
         <div class="tip-item">
-          <div class="tip-icon-box">${ICONS.car}</div>
           <div class="tip-body">
             <div class="tip-title-row">
               <span class="tip-title">Carpooling & Smooth Driving</span>
@@ -451,7 +457,6 @@ function generateAIAdvice(commuteVal, electricityVal, transitVal) {
       <div class="ai-advice-focus">Priority Focus: Optimize Home Energy Efficiency</div>
       <div class="tips-container">
         <div class="tip-item">
-          <div class="tip-icon-box">${ICONS.plug}</div>
           <div class="tip-body">
             <div class="tip-title-row">
               <span class="tip-title">Kill Standby Power ("Vampire Draw")</span>
@@ -462,7 +467,6 @@ function generateAIAdvice(commuteVal, electricityVal, transitVal) {
         </div>
         
         <div class="tip-item">
-          <div class="tip-icon-box">${ICONS.sun}</div>
           <div class="tip-body">
             <div class="tip-title-row">
               <span class="tip-title">Thermostat & Insulation Adjustments</span>
@@ -473,7 +477,6 @@ function generateAIAdvice(commuteVal, electricityVal, transitVal) {
         </div>
         
         <div class="tip-item">
-          <div class="tip-icon-box">${ICONS.leaf}</div>
           <div class="tip-body">
             <div class="tip-title-row">
               <span class="tip-title">Switch to LEDs and Energy Star</span>
@@ -490,7 +493,6 @@ function generateAIAdvice(commuteVal, electricityVal, transitVal) {
       <div class="ai-advice-focus">Priority Focus: Consolidate Commute Volume</div>
       <div class="tips-container">
         <div class="tip-item">
-          <div class="tip-icon-box">${ICONS.bike}</div>
           <div class="tip-body">
             <div class="tip-title-row">
               <span class="tip-title">Last-Mile Cycling or Walking</span>
@@ -501,7 +503,6 @@ function generateAIAdvice(commuteVal, electricityVal, transitVal) {
         </div>
         
         <div class="tip-item">
-          <div class="tip-icon-box">${ICONS.leaf}</div>
           <div class="tip-body">
             <div class="tip-title-row">
               <span class="tip-title">Consolidate Errands</span>
@@ -520,10 +521,10 @@ function generateAIAdvice(commuteVal, electricityVal, transitVal) {
 // --- INPUT EVENT CONTROLLERS ---
 
 /**
- * Handles validation and state updates when range/numeric inputs change.
+ * Handles state updates and synchronization when form controllers change.
  * @param {string} category - Category key ('commute', 'electricity', 'transit').
- * @param {string|number} rawValue - Raw string or numeric input value.
- * @param {number} max - Bound constraint limit.
+ * @param {string|number} rawValue - Raw user input value.
+ * @param {number} max - Maximum scale constraint.
  * @returns {void}
  */
 function handleInputChange(category, rawValue, max) {
@@ -537,7 +538,7 @@ function handleInputChange(category, rawValue, max) {
 }
 
 /**
- * Sets up bidirectional event listeners on form range and numeric controllers.
+ * Binds input listeners on bidirectional range and text fields.
  * @returns {void}
  */
 function setupInputListeners() {
@@ -568,8 +569,7 @@ function setupInputListeners() {
 // --- STATE PERSISTENCE & STREAK LOGGING ---
 
 /**
- * Validates whether the user kept up their daily streak.
- * Resets streak count if user skipped logging for more than 1 day.
+ * Resets streak logging stats if user misses checking in for > 24 hours.
  * @returns {void}
  */
 function checkStreakValidity() {
@@ -591,7 +591,7 @@ function checkStreakValidity() {
 }
 
 /**
- * Restores input history and streak stats from local storage configurations.
+ * Loads dashboard history inputs and streak badges from local storage.
  * @returns {void}
  */
 function initAppState() {
@@ -612,7 +612,6 @@ function initAppState() {
   state.lastLoggedDate = localStorage.getItem('ecotrace_last_logged');
   checkStreakValidity();
   
-  // Populate starting UI elements
   if (elements.streakCount) elements.streakCount.innerText = state.streak;
   syncInputs('commute', state.inputs.commute, 150);
   syncInputs('electricity', state.inputs.electricity, 50);
@@ -620,26 +619,20 @@ function initAppState() {
 }
 
 /**
- * Triggers feedback animations and colors change on logging button and streak badges.
+ * Triggers logging success scale feedback animations on the log button.
  * @returns {void}
  */
 function triggerStreakAnimation() {
   const badge = document.getElementById('streak-badge');
   if (badge) {
-    badge.style.transform = 'scale(1.25)';
-    badge.style.boxShadow = '0 0 25px rgba(245, 158, 11, 0.8)';
+    badge.style.transform = 'scale(1.15)';
+    badge.style.boxShadow = '0 0 15px rgba(52, 211, 153, 0.4)';
   }
   
   if (elements.saveLogBtn) {
-    elements.saveLogBtn.classList.remove('btn-primary');
-    elements.saveLogBtn.style.background = 'linear-gradient(135deg, #059669, #047857)';
+    elements.saveLogBtn.style.backgroundColor = '#059669';
     elements.saveLogBtn.style.color = '#ffffff';
-    elements.saveLogBtn.innerHTML = `
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="btn-icon">
-        <polyline points="20 6 9 17 4 12"></polyline>
-      </svg>
-      Footprint Saved!
-    `;
+    elements.saveLogBtn.innerText = 'Footprint Saved!';
   }
   
   setTimeout(() => {
@@ -649,23 +642,15 @@ function triggerStreakAnimation() {
     }
     
     if (elements.saveLogBtn) {
-      elements.saveLogBtn.classList.add('btn-primary');
-      elements.saveLogBtn.style.background = '';
+      elements.saveLogBtn.style.backgroundColor = '';
       elements.saveLogBtn.style.color = '';
-      elements.saveLogBtn.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="btn-icon">
-          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-          <polyline points="17 21 17 13 7 13 7 21"/>
-          <polyline points="7 3 7 8 15 8"/>
-        </svg>
-        Log Today's Footprint
-      `;
+      elements.saveLogBtn.innerText = "Log Today's Footprint";
     }
   }, 2000);
 }
 
 /**
- * Handles footprint logging commits and calculates streak increases.
+ * Registers daily footprint carbon score and advances user log streak.
  * @returns {void}
  */
 function logDailyFootprint() {
@@ -704,7 +689,7 @@ function logDailyFootprint() {
 }
 
 /**
- * Binds click handler for the Logging Commit button.
+ * Sets up listener handlers for log streak buttons.
  * @returns {void}
  */
 function setupStreakLogging() {
@@ -713,7 +698,7 @@ function setupStreakLogging() {
   }
 }
 
-// --- INITIALIZATION GATEWAY ---
+// --- INITIALIZATION ---
 
 if (typeof document !== 'undefined') {
   document.addEventListener('DOMContentLoaded', () => {
