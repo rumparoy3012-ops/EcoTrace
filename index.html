@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EcoTrace - Carbon Footprint Tracker</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo-area">
+        <svg class="logo-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 3.5 1 9.8a7 7 0 0 1-9 8.2Z"/>
+          <path d="M9 10a.5.5 0 0 0-1 0v4a.5.5 0 0 0 1 0Z"/>
+          <path d="m14 13 .5.5"/>
+          <path d="M12 16a3 3 0 0 0-3-3"/>
+        </svg>
+        <span class="logo-text">EcoTrace</span>
+      </div>
+      <div class="header-stats">
+        <div class="streak-badge" id="streak-badge" title="Days logged in a row">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="streak-icon">
+            <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
+          </svg>
+          <span class="streak-count" id="streak-count">0</span> Day Streak
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Grid -->
+    <main class="dashboard-grid">
+      <!-- Left Column: Input Panel -->
+      <section class="dashboard-card input-card">
+        <div class="card-header">
+          <h2 class="card-title">Daily Activity Log</h2>
+          <p class="card-subtitle">Input your travel and energy usage below. See changes instantly.</p>
+        </div>
+
+        <form id="footprint-form" class="activity-form" onsubmit="event.preventDefault();">
+          <!-- Private Vehicle Commute -->
+          <div class="input-group">
+            <div class="input-label-row">
+              <label for="commute-input" class="field-label">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="input-icon icon-car">
+                  <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/>
+                  <circle cx="7" cy="17" r="2"/>
+                  <path d="M9 17h6"/>
+                  <circle cx="17" cy="17" r="2"/>
+                </svg>
+                Private Vehicle Commute
+              </label>
+              <span class="unit-badge">km</span>
+            </div>
+            <div class="dual-input-container">
+              <input type="range" id="commute-slider" min="0" max="150" value="25" step="1" class="slider-control" aria-label="Private Vehicle Commute Slider">
+              <input type="number" id="commute-number" min="0" max="999" value="25" class="number-control" aria-label="Private Vehicle Commute Input">
+            </div>
+            <span class="input-caption">Avg. petrol passenger car emissions</span>
+          </div>
+
+          <!-- Electricity Consumption -->
+          <div class="input-group">
+            <div class="input-label-row">
+              <label for="electricity-input" class="field-label">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="input-icon icon-power">
+                  <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>
+                  <line x1="12" y1="2" x2="12" y2="12"/>
+                </svg>
+                Electricity Consumption
+              </label>
+              <span class="unit-badge">kWh</span>
+            </div>
+            <div class="dual-input-container">
+              <input type="range" id="electricity-slider" min="0" max="50" value="12" step="0.5" class="slider-control" aria-label="Electricity Slider">
+              <input type="number" id="electricity-number" min="0" max="999" value="12" step="0.1" class="number-control" aria-label="Electricity Input">
+            </div>
+            <span class="input-caption">Typical household daily energy draw</span>
+          </div>
+
+          <!-- Public Transport -->
+          <div class="input-group">
+            <div class="input-label-row">
+              <label for="transit-input" class="field-label">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="input-icon icon-transit">
+                  <rect x="4" y="3" width="16" height="16" rx="2"/>
+                  <path d="M4 11h16"/>
+                  <path d="M12 3v8"/>
+                  <path d="m8 19-2 3"/>
+                  <path d="m16 19 2 3"/>
+                </svg>
+                Public Transport Travel
+              </label>
+              <span class="unit-badge">km</span>
+            </div>
+            <div class="dual-input-container">
+              <input type="range" id="transit-slider" min="0" max="100" value="15" step="1" class="slider-control" aria-label="Public Transport Slider">
+              <input type="number" id="transit-number" min="0" max="999" value="15" class="number-control" aria-label="Public Transport Input">
+            </div>
+            <span class="input-caption">Trains, metro systems, and local bus transit</span>
+          </div>
+
+          <button id="save-log-btn" class="btn btn-primary">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="btn-icon">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+              <polyline points="17 21 17 13 7 13 7 21"/>
+              <polyline points="7 3 7 8 15 8"/>
+            </svg>
+            Log Today's Footprint
+          </button>
+        </form>
+      </section>
+
+      <!-- Right Column: Visualizer & Summary Panel -->
+      <div class="visualizer-column">
+        <!-- Dashboard Card: Score & SVG Chart -->
+        <section class="dashboard-card visualizer-card">
+          <div class="card-header">
+            <h2 class="card-title">Daily Summary</h2>
+            <p class="card-subtitle">Your immediate carbon footprint evaluation.</p>
+          </div>
+
+          <div class="visualizer-content">
+            <!-- SVG Doughnut Chart Area -->
+            <div class="chart-wrapper">
+              <svg id="chart-svg" class="doughnut-chart" viewBox="0 0 200 200">
+                <!-- Base Circle Background -->
+                <circle class="chart-track" cx="100" cy="100" r="75"></circle>
+                <!-- Dynamic Segments (will be injected by app.js) -->
+                <g id="chart-segments"></g>
+                <!-- Inner glow overlay or mask -->
+                <circle class="chart-center" cx="100" cy="100" r="60"></circle>
+              </svg>
+              <!-- Center Text overlay -->
+              <div class="chart-label-container">
+                <span class="label-value" id="total-emissions">0.0</span>
+                <span class="label-unit">kg CO₂</span>
+                <span class="emission-rating badge-low" id="emission-status">Low</span>
+              </div>
+            </div>
+
+            <!-- Categories progress break down -->
+            <div class="breakdown-list">
+              <!-- Vehicle Breakdown -->
+              <div class="breakdown-item" id="breakdown-commute">
+                <div class="breakdown-header">
+                  <span class="breakdown-name">Private Car</span>
+                  <span class="breakdown-value" id="val-commute">0.0 kg</span>
+                </div>
+                <div class="progress-bar-container">
+                  <div class="progress-bar-fill fill-commute" style="width: 0%"></div>
+                </div>
+              </div>
+
+              <!-- Electricity Breakdown -->
+              <div class="breakdown-item" id="breakdown-electricity">
+                <div class="breakdown-header">
+                  <span class="breakdown-name">Electricity</span>
+                  <span class="breakdown-value" id="val-electricity">0.0 kg</span>
+                </div>
+                <div class="progress-bar-container">
+                  <div class="progress-bar-fill fill-electricity" style="width: 0%"></div>
+                </div>
+              </div>
+
+              <!-- Transit Breakdown -->
+              <div class="breakdown-item" id="breakdown-transit">
+                <div class="breakdown-header">
+                  <span class="breakdown-name">Public Transit</span>
+                  <span class="breakdown-value" id="val-transit">0.0 kg</span>
+                </div>
+                <div class="progress-bar-container">
+                  <div class="progress-bar-fill fill-transit" style="width: 0%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Dashboard Card: AI Advisor Panel -->
+        <section class="dashboard-card advice-card">
+          <div class="card-header advice-header-row">
+            <div>
+              <h2 class="card-title">AI Eco-Advice</h2>
+              <p class="card-subtitle">Personalized action plan generated in real time.</p>
+            </div>
+            <div class="sparkle-badge">
+              <svg class="sparkle-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+              </svg>
+              AI Live
+            </div>
+          </div>
+
+          <div class="advice-content" id="ai-advice-wrapper">
+            <!-- Injected by JavaScript -->
+            <div class="loading-advice">Calculating advice...</div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <p>EcoTrace &copy; 2026. Made with care for the environment. Calculations based on standard regional greenhouse gas emissions factors.</p>
+    </footer>
+  </div>
+
+  <!-- App Logic script -->
+  <script src="app.js"></script>
+</body>
+</html>
