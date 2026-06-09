@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EcoTrace - Unit Test Runner</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Outfit:wght@600;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #080f0c;
+      --bg-terminal: #0b1612;
+      --border-color: rgba(16, 185, 129, 0.2);
+      --accent-mint: #34d399;
+      --accent-emerald: #10b981;
+      --color-pass: #10b981;
+      --color-fail: #ef4444;
+      --text-main: #f3f4f6;
+      --text-secondary: #9ca3af;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: radial-gradient(circle at top right, #0d1e18, #050c09);
+      color: var(--text-main);
+      min-height: 100vh;
+      padding: 3rem 1.5rem;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 1rem;
+    }
+
+    h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.8rem;
+      background: linear-gradient(135deg, var(--text-main), var(--accent-mint));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .btn-back {
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--accent-mint);
+      text-decoration: none;
+      border: 1px solid var(--border-color);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+      background: rgba(16, 185, 129, 0.05);
+    }
+
+    .btn-back:hover {
+      border-color: var(--accent-mint);
+      background: rgba(16, 185, 129, 0.15);
+      box-shadow: 0 0 15px rgba(52, 211, 153, 0.25);
+    }
+
+    /* Terminal Console */
+    .terminal {
+      background: var(--bg-terminal);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    }
+
+    .terminal-header {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 0.75rem 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+    .dot-red { background: #ef4444; }
+    .dot-yellow { background: #f59e0b; }
+    .dot-green { background: #10b981; }
+
+    .terminal-title {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-left: 0.5rem;
+    }
+
+    .terminal-body {
+      padding: 1.5rem;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+
+    .log-line {
+      margin-bottom: 0.5rem;
+      word-break: break-all;
+    }
+
+    .log-header {
+      color: #3b82f6;
+      font-weight: 600;
+      margin-top: 1rem;
+      border-bottom: 1px dashed rgba(59, 130, 246, 0.2);
+      padding-bottom: 0.25rem;
+    }
+    .log-header:first-child {
+      margin-top: 0;
+    }
+
+    .log-pass {
+      color: var(--color-pass);
+    }
+
+    .log-fail {
+      color: var(--color-fail);
+      font-weight: 600;
+    }
+
+    .summary-card {
+      background: rgba(16, 185, 129, 0.05);
+      border: 1px solid var(--border-color);
+      padding: 1.5rem;
+      border-radius: 16px;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      text-align: center;
+    }
+
+    .summary-stat {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .stat-label {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .stat-val {
+      font-size: 1.8rem;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+    }
+    
+    .stat-val.passed { color: var(--color-pass); }
+    .stat-val.failed { color: var(--color-fail); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>EcoTrace Unit Test Runner</h1>
+      <a href="index.html" class="btn-back">← Back to App</a>
+    </header>
+
+    <div class="summary-card">
+      <div class="summary-stat">
+        <span class="stat-label">Total Assertions</span>
+        <span class="stat-val" id="total-assertions">0</span>
+      </div>
+      <div class="summary-stat">
+        <span class="stat-label">Passed</span>
+        <span class="stat-val passed" id="passed-assertions">0</span>
+      </div>
+      <div class="summary-stat">
+        <span class="stat-label">Failed</span>
+        <span class="stat-val failed" id="failed-assertions">0</span>
+      </div>
+    </div>
+
+    <div class="terminal">
+      <div class="terminal-header">
+        <div class="dot dot-red"></div>
+        <div class="dot dot-yellow"></div>
+        <div class="dot dot-green"></div>
+        <span class="terminal-title">bash - test-runner.js</span>
+      </div>
+      <div class="terminal-body" id="terminal-output">
+        <!-- Logs will be dynamically written here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Load Application Code -->
+  <script src="app.js"></script>
+  
+  <!-- Test Runner Bridge & Load Test Script -->
+  <script>
+    const outputDiv = document.getElementById('terminal-output');
+    const totalEl = document.getElementById('total-assertions');
+    const passedEl = document.getElementById('passed-assertions');
+    const failedEl = document.getElementById('failed-assertions');
+
+    let totalTests = 0;
+    let passedTests = 0;
+
+    // Helper to append logs to our terminal UI
+    function writeToTerminal(text, type = '') {
+      const line = document.createElement('div');
+      line.className = `log-line ${type}`;
+      line.innerText = text;
+      outputDiv.appendChild(line);
+      outputDiv.scrollTop = outputDiv.scrollHeight;
+    }
+
+    // Override the global console logs to show in the page
+    console.log = function(message, ...args) {
+      if (typeof message === 'string') {
+        if (message.startsWith('%c===') || message.startsWith('===')) {
+          writeToTerminal(message.replace(/%c/g, ''), 'log-header');
+        } else if (message.includes('assertions') || message.includes('Total') || message.includes('Passed')) {
+          writeToTerminal(message);
+          
+          // Parse summary statistics to update card values
+          if (message.startsWith('Total assertions run:')) {
+            totalEl.innerText = message.split(':')[1].trim();
+          } else if (message.startsWith('Passed assertions:')) {
+            passedEl.innerText = message.split(':')[1].trim();
+          } else if (message.startsWith('Failed assertions:')) {
+            failedEl.innerText = message.split(':')[1].trim();
+          }
+        } else {
+          writeToTerminal(message);
+        }
+      } else {
+        writeToTerminal(JSON.stringify(message));
+      }
+    };
+
+    console.error = function(message, ...args) {
+      writeToTerminal(message, 'log-fail');
+    };
+
+    // Override console output formatting styled messages
+    const originalLog = console.log;
+    window.console.log = function(stylePattern, style, message) {
+      if (typeof stylePattern === 'string' && stylePattern.includes('%c[PASS]')) {
+        writeToTerminal(`[PASS] ${message}`, 'log-pass');
+      } else if (stylePattern.includes('%c===') || stylePattern.startsWith('===')) {
+        writeToTerminal(message || stylePattern.replace(/%c/g, ''), 'log-header');
+      } else {
+        writeToTerminal(stylePattern);
+      }
+    };
+  </script>
+  <script src="test.js"></script>
+  <script>
+    // Trigger tests
+    window.runEcoTraceTests();
+  </script>
+</body>
+</html>

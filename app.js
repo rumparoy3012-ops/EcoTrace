@@ -10,39 +10,60 @@ const EMISSION_FACTORS = {
   transit: 0.04       // per km (average bus/train)
 };
 
+/**
+ * Pure function to calculate carbon emissions.
+ * Easy to unit test in any environment (browser or Node.js).
+ */
+function calculateEmissions(commute, electricity, transit) {
+  const commuteCO2 = commute * EMISSION_FACTORS.commute;
+  const electricityCO2 = electricity * EMISSION_FACTORS.electricity;
+  const transitCO2 = transit * EMISSION_FACTORS.transit;
+  const totalCO2 = commuteCO2 + electricityCO2 + transitCO2;
+  
+  return {
+    commuteCO2,
+    electricityCO2,
+    transitCO2,
+    totalCO2
+  };
+}
+
 // --- DOM ELEMENTS ---
-const elements = {
-  // Inputs
-  commuteSlider: document.getElementById('commute-slider'),
-  commuteNumber: document.getElementById('commute-number'),
-  electricitySlider: document.getElementById('electricity-slider'),
-  electricityNumber: document.getElementById('electricity-number'),
-  transitSlider: document.getElementById('transit-slider'),
-  transitNumber: document.getElementById('transit-number'),
-  
-  // Dashboard Results
-  totalEmissions: document.getElementById('total-emissions'),
-  emissionStatus: document.getElementById('emission-status'),
-  
-  // Breakdown Values & Progress Bars
-  valCommute: document.getElementById('val-commute'),
-  valElectricity: document.getElementById('val-electricity'),
-  valTransit: document.getElementById('val-transit'),
-  
-  barCommute: document.querySelector('.fill-commute'),
-  barElectricity: document.querySelector('.fill-electricity'),
-  barTransit: document.querySelector('.fill-transit'),
-  
-  // Chart Elements
-  chartSegments: document.getElementById('chart-segments'),
-  
-  // AI Advice Container
-  aiAdviceWrapper: document.getElementById('ai-advice-wrapper'),
-  
-  // Streak System
-  streakCount: document.getElementById('streak-count'),
-  saveLogBtn: document.getElementById('save-log-btn')
-};
+let elements = {};
+if (typeof document !== 'undefined') {
+  elements = {
+    // Inputs
+    commuteSlider: document.getElementById('commute-slider'),
+    commuteNumber: document.getElementById('commute-number'),
+    electricitySlider: document.getElementById('electricity-slider'),
+    electricityNumber: document.getElementById('electricity-number'),
+    transitSlider: document.getElementById('transit-slider'),
+    transitNumber: document.getElementById('transit-number'),
+    
+    // Dashboard Results
+    totalEmissions: document.getElementById('total-emissions'),
+    emissionStatus: document.getElementById('emission-status'),
+    
+    // Breakdown Values & Progress Bars
+    valCommute: document.getElementById('val-commute'),
+    valElectricity: document.getElementById('val-electricity'),
+    valTransit: document.getElementById('val-transit'),
+    
+    barCommute: document.querySelector('.fill-commute'),
+    barElectricity: document.querySelector('.fill-electricity'),
+    barTransit: document.querySelector('.fill-transit'),
+    
+    // Chart Elements
+    chartSegments: document.getElementById('chart-segments'),
+    
+    // AI Advice Container
+    aiAdviceWrapper: document.getElementById('ai-advice-wrapper'),
+    
+    // Streak System
+    streakCount: document.getElementById('streak-count'),
+    saveLogBtn: document.getElementById('save-log-btn')
+  };
+}
 
 // --- APP STATE ---
 let state = {
@@ -151,12 +172,12 @@ function updateSliderProgressFill(slider, val, max) {
  * Calculations & UI Renders
  */
 function updateCalculations() {
-  // 1. Calculate individual emissions
-  const commuteCO2 = state.inputs.commute * EMISSION_FACTORS.commute;
-  const electricityCO2 = state.inputs.electricity * EMISSION_FACTORS.electricity;
-  const transitCO2 = state.inputs.transit * EMISSION_FACTORS.transit;
-  
-  const totalCO2 = commuteCO2 + electricityCO2 + transitCO2;
+  // 1. Calculate emissions using the pure function
+  const { commuteCO2, electricityCO2, transitCO2, totalCO2 } = calculateEmissions(
+    state.inputs.commute,
+    state.inputs.electricity,
+    state.inputs.transit
+  );
   
   // 2. Render emissions metrics
   elements.totalEmissions.innerText = totalCO2.toFixed(1);
@@ -540,9 +561,19 @@ function setupStreakLogging() {
 }
 
 // --- INIT APP ---
-document.addEventListener('DOMContentLoaded', () => {
-  initAppState();
-  setupInputListeners();
-  setupStreakLogging();
-  updateCalculations();
-});
+if (typeof document !== 'undefined') {
+  document.addEventListener('DOMContentLoaded', () => {
+    initAppState();
+    setupInputListeners();
+    setupStreakLogging();
+    updateCalculations();
+  });
+}
+
+// Export for Node.js unit testing
+if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
+  module.exports = {
+    calculateEmissions,
+    EMISSION_FACTORS
+  };
+}
