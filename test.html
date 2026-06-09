@@ -237,43 +237,42 @@
       outputDiv.scrollTop = outputDiv.scrollHeight;
     }
 
-    // Override the global console logs to show in the page
-    console.log = function(message, ...args) {
-      if (typeof message === 'string') {
-        if (message.startsWith('%c===') || message.startsWith('===')) {
-          writeToTerminal(message.replace(/%c/g, ''), 'log-header');
-        } else if (message.includes('assertions') || message.includes('Total') || message.includes('Passed')) {
-          writeToTerminal(message);
+    // Override the global console logs to show in the page and update stats
+    window.console.log = function(firstArg, ...args) {
+      if (typeof firstArg === 'string') {
+        if (firstArg.includes('%c[PASS]')) {
+          const msg = args[1] || '';
+          writeToTerminal(`[PASS] ${msg}`, 'log-pass');
+        } else if (firstArg.includes('%c===')) {
+          const title = args[1] || '';
+          writeToTerminal(`=== ${title} ===`, 'log-header');
+        } else {
+          writeToTerminal(firstArg);
           
           // Parse summary statistics to update card values
-          if (message.startsWith('Total assertions run:')) {
-            totalEl.innerText = message.split(':')[1].trim();
-          } else if (message.startsWith('Passed assertions:')) {
-            passedEl.innerText = message.split(':')[1].trim();
-          } else if (message.startsWith('Failed assertions:')) {
-            failedEl.innerText = message.split(':')[1].trim();
+          if (firstArg.startsWith('Total assertions run:')) {
+            totalEl.innerText = firstArg.split(':')[1].trim();
+          } else if (firstArg.startsWith('Passed assertions:')) {
+            passedEl.innerText = firstArg.split(':')[1].trim();
+          } else if (firstArg.startsWith('Failed assertions:')) {
+            failedEl.innerText = firstArg.split(':')[1].trim();
           }
-        } else {
-          writeToTerminal(message);
         }
       } else {
-        writeToTerminal(JSON.stringify(message));
+        writeToTerminal(JSON.stringify(firstArg));
       }
     };
 
-    console.error = function(message, ...args) {
-      writeToTerminal(message, 'log-fail');
-    };
-
-    // Override console output formatting styled messages
-    const originalLog = console.log;
-    window.console.log = function(stylePattern, style, message) {
-      if (typeof stylePattern === 'string' && stylePattern.includes('%c[PASS]')) {
-        writeToTerminal(`[PASS] ${message}`, 'log-pass');
-      } else if (stylePattern.includes('%c===') || stylePattern.startsWith('===')) {
-        writeToTerminal(message || stylePattern.replace(/%c/g, ''), 'log-header');
+    window.console.error = function(firstArg, ...args) {
+      if (typeof firstArg === 'string') {
+        if (firstArg.includes('%c[FAIL]')) {
+          const msg = args[1] || '';
+          writeToTerminal(`[FAIL] ${msg}`, 'log-fail');
+        } else {
+          writeToTerminal(firstArg, 'log-fail');
+        }
       } else {
-        writeToTerminal(stylePattern);
+        writeToTerminal(JSON.stringify(firstArg), 'log-fail');
       }
     };
   </script>
